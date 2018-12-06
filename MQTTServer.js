@@ -49,12 +49,6 @@ ttn.data(appID, accessKey)
       //storeData(jsonpayload.dev_id, dateTime, jsonpayload.counter, payloadmm);
       //storeSensor(jsonpayload.dev_id, jsonpayload.hardware_serial, jsonpayload.metadata.latitude, jsonpayload.metadata.longitude, jsonpayload.metadata.altitude);
 
-      fs.writeFile("./MQTTFloodReport.json", JSON.stringify(payload), (err) => {
-        if (err) {
-          console.error(err);
-          return;
-        }
-      });
     })
   })
   .catch(function (err) {
