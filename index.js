@@ -30,14 +30,16 @@ app.post('/GetSensorDetails', (req, res, next) =>
   let sql = 'SELECT sensor_id, latitude, longitude FROM SensorDetails';
 
   db.all(sql, [], (err, rows) => {
-  if (err) {
+  if (err)
+  {
     throw err;
   }
   console.log(rows) //Test, This is what its sending back
   res.send(rows);
 
   //This is test - This should be the result or to be sent
-  rows.forEach((row) => {
+  rows.forEach((row) =>
+  {
     console.log(row.sensor_id);
   });
 
@@ -58,7 +60,7 @@ app.post('/GetMostRecentFloodWarnings', (req, res, next) =>
   let floodWarningList = [];
   let sensor_ids = [];
 
-  db.all(sql1, [], (err, rows) => 
+  db.all(sql1, [], (err, rows) =>
 {
   sensor_ids = rows;
 
@@ -67,7 +69,7 @@ app.post('/GetMostRecentFloodWarnings', (req, res, next) =>
     };
 });
 
-sensor_ids.forEach((sensor_id) => 
+sensor_ids.forEach((sensor_id) =>
 {
   let sql2 = 'SELECT * FROM FloodStatus WHERE sensor_id = ? ORDER BY DESC LIMIT 1';
 
@@ -113,13 +115,17 @@ app.post('/GetLast24HoursOfData', (req, res, next) =>
 app.post('/GetCurrentValue', (req, res, next) =>
 {
   var sensor_id = req.body.sensor_id;
-  let sql = 'SELECT * FROM SensorDetails WHERE sensor_id = ? ORDER BY DESC LIMIT 1';
+  console.log("sensor_id " + sensor_id);
+  let sql = 'SELECT * FROM SensorDetails WHERE sensor_id = ?';
   let isMQTT = false;
   let latestSensorReading = -1;
+
   //use sensor id to find if sensor is MQTT or not
-  db.get(sql, [sensor_id], (err, row) => 
+  db.get(sql, [sensor_id], (err, row) =>
   {
-    if(altitude != null)
+    console.log(row);
+
+    if(row.altitude != null)
     {
       isMQTT = true;
     }
@@ -129,7 +135,7 @@ app.post('/GetCurrentValue', (req, res, next) =>
   {
     //get lastest reading from most recent value in database for that sensor
     sql = "SELECT value_mm FROM HistoricalData WHERE sensor_id = ? ORDER BY DESC LIMIT 1";
-  
+
     db.get(sql, [sensor_id], (err, row)=>
     {
       latestSensorReading = row;
@@ -148,7 +154,7 @@ app.post('/GetCurrentValue', (req, res, next) =>
       console.error(error);
     }
   }
-    
+
   res.send(latestSensorReading)
 });
 
