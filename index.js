@@ -45,7 +45,7 @@ app.post('/GetSensorDetails', (req, res, next) =>
 
   });
 
-  db.close();
+  //db.close();
 });
 
 
@@ -123,39 +123,36 @@ app.post('/GetCurrentValue', (req, res, next) =>
   //use sensor id to find if sensor is MQTT or not
   db.get(sql, [sensor_id], (err, row) =>
   {
-    console.log(row);
+    console.log("ROW: " + JSON.stringify(row));
 
-    if(row.altitude != null)
+    if(row.MQTT == "True")
     {
-      isMQTT = true;
+      console.log("MQTT is true");
+        //get lastest reading from most recent value in database for that sensor
+      sql = "SELECT value_mm FROM HistoricalData WHERE sensor_id = ? ORDER BY ID DESC LIMIT 1";
+
+      db.get(sql, [sensor_id], (err, row)=>
+      {
+        latestSensorReading = row;
+
+        res.send(latestSensorReading)
+      });
+    }else
+    {
+      //get latest value for sensor by calling the gov api.
+      try
+      {
+        latestReading = getLatestReadingGov();
+        latestSensorReading = latestReading.items.value;
+        latestSensorReading * 1000;
+      }catch(error)
+      {
+        console.error(error);
+      }
+
+      res.send(latestSensorReading)
     }
   });
-
-  if (isMQTT)
-  {
-    //get lastest reading from most recent value in database for that sensor
-    sql = "SELECT value_mm FROM HistoricalData WHERE sensor_id = ? ORDER BY DESC LIMIT 1";
-
-    db.get(sql, [sensor_id], (err, row)=>
-    {
-      latestSensorReading = row;
-    });
-
-  }else
-  {
-    //get latest value for sensor by calling the gov api.
-    try
-    {
-      latestReading = getLatestReadingGov();
-      latestSensorReading = latestReading.items.value;
-      latestSensorReading * 1000;
-    }catch(error)
-    {
-      console.error(error);
-    }
-  }
-
-  res.send(latestSensorReading)
 });
 
 //API REQUESTS
