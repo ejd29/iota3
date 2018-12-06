@@ -44,7 +44,7 @@ ttn.data(appID, accessKey)
 				minute: '2-digit',
 			});
 
-			storeData(jsonpayload.dev_id, dateTime, payloadmm);
+			storeData(jsonpayload.hardware_serial, dateTime, payloadmm);
       storeSensor(jsonpayload.hardware_serial, jsonpayload.metadata.latitude, jsonpayload.metadata.longitude, jsonpayload.metadata.altitude);
       //storeData(jsonpayload.dev_id, dateTime, jsonpayload.counter, payloadmm);
       //storeSensor(jsonpayload.dev_id, jsonpayload.hardware_serial, jsonpayload.metadata.latitude, jsonpayload.metadata.longitude, jsonpayload.metadata.altitude);
