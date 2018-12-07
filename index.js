@@ -3,6 +3,7 @@ const cors = require('cors');
 const app = express();
 const bodyParser = require('body-parser');
 const sqlite3 = require('sqlite3').verbose();
+const https = require('https');
 const axios = require('axios');
 
 app.use(cors());
@@ -139,30 +140,80 @@ app.post('/GetCurrentValue', (req, res, next) =>
       });
     }else
     {
-      //get latest value for sensor by calling the gov api.
-      try
-      {
-        latestReading = getLatestReadingGov();
-        latestSensorReading = latestReading.items.value;
-        latestSensorReading * 1000;
-      }catch(error)
-      {
-        console.error(error);
-      }
+        let jsonResponseString = "";
+        let queryURL = "https://environment.data.gov.uk/flood-monitoring/id/stations/" + sensor_id + "/readings?latest";
+        //let queryURL = "https://environment.data.gov.uk/flood-monitoring/id/stations/E3951/readings?latest";
+        console.log(queryURL);
+  
+        https.get(queryURL, (response) => {
+        let data = '';
+  
+        // A message from the data has been received
+        response.on('data', (message) => {
+          data += message;
+        });
+  
+        // The whole response has been received. Print out the result.
+        response.on('end', () => {
+          jsonResponseString = JSON.parse(data);
+          console.log(jsonResponseString);
 
-      res.send(latestSensorReading)
+          latestSensorReading = jsonResponseString.items[0].value;
+          latestSensorReading * 1000;
+
+          //put into js object
+          let latestSensorReadingObj = {value_mm: latestSensorReading};
+
+          res.send(latestSensorReadingObj);
+        });
+  
+      }).on("error", (err) => {
+        console.log("Error: " + err.message);
+      });
     }
   });
 });
 
+
 //API REQUESTS
 
+/*
 const getLatestReadingGov = async () => {
   try {
     return await axios.get('https://environment.data.gov.uk/flood-monitoring/id/stations/E3826/readings?latest')
   } catch (error) {
     console.error(error)
   }
+}
+
+*/
+
+function getLatestReadingGov(sensor_id, callback)
+{
+      let jsonResponseString = "";
+      let queryURL = "https://environment.data.gov.uk/flood-monitoring/id/stations/" + sensor_id + "/readings?latest";
+      //let queryURL = "https://environment.data.gov.uk/flood-monitoring/id/stations/E3951/readings?latest";
+      console.log(queryURL);
+
+      https.get(queryURL, (response) => {
+      let data = '';
+
+      // A message from the data has been received
+      response.on('data', (message) => {
+        data += message;
+      });
+
+      // The whole response has been received. Print out the result.
+      response.on('end', () => {
+        jsonResponseString = JSON.parse(data);
+        console.log(jsonResponseString);
+      });
+
+    }).on("error", (err) => {
+      console.log("Error: " + err.message);
+    });
+
+    callback(jsonResponseString);
 }
 
 //PORT STUFF
