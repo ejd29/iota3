@@ -22,13 +22,18 @@ app.use(bodyParser.urlencoded({ extended: true })); // support encoded bodies
 
 let db = new sqlite3.Database('./FloodMonitoring.db');
 
+//-----Test Get Request -----
+
+app.get('/Test', (req, res, next) => 
+{
+  res.send("tesssssstttttt");
+});
 
 //-----GetSensorDetails------
 
-
 app.post('/GetSensorDetails', (req, res, next) =>
 {
-  let sql = 'SELECT sensor_id, latitude, longitude FROM SensorDetails';
+  let sql = 'SELECT sensor_id, sensor_name, latitude, longitude, MQTT FROM SensorDetails';
 
   db.all(sql, [], (err, rows) => {
   if (err)
@@ -53,52 +58,37 @@ app.post('/GetSensorDetails', (req, res, next) =>
 //-----GetMostRecentFloodWarnings------
 
 
-app.post('/GetMostRecentFloodWarnings', (req, res, next) =>
-{
-  //get sensor details to obtain all sensor ids (from db)
-  let sql1 = 'SELECT sensor_id FROM SensorDetails';
+app.post('/GetMostRecentFloodWarningMQTT', (req, res, next) =>
+{     
+  let sql2 = 'SELECT * FROM FloodStatus WHERE sensor_id = ? ORDER BY ID DESC LIMIT 1';
+  var sensor_id = req.body.sensor_id;
 
-  let floodWarningList = [];
-  let sensor_ids = [];
-
-  db.all(sql1, [], (err, rows) =>
-{
-  sensor_ids = rows;
-
-    if (err) {
-      throw err;
-    };
-});
-
-sensor_ids.forEach((sensor_id) =>
-{
-  let sql2 = 'SELECT * FROM FloodStatus WHERE sensor_id = ? ORDER BY DESC LIMIT 1';
-
-  db.get(sql2, [sensor_id.sensor_id], (err, floodAlert) => {
+  db.get(sql2, [sensor_id], (err, floodAlert) => 
+  {
     if (err) {
       throw err;
     }
 
-  let sensorFloodStatus = {sensor_id: sensor_id.sensor_id, severity_level: floodAlert.severity_level};
-  floodWarningList.push(sensorFloodStatus);
+    let sensorFloodStatus = {sensor_id: sensor_id, severity_level: 0};
+
+  if(floodAlert)
+  {
+    sensorFloodStatus = {sensor_id: sensor_id, severity_level: floodAlert.severity_level};
+  }
+ 
+  res.send(sensorFloodStatus);
+  });
 });
-});
-
-res.send(floodWarningList);
-
-});
-
-
 
 //-----GetLast24HoursOfData------
 
-
-
-app.post('/GetLast24HoursOfData', (req, res, next) =>
+app.post('/GetLast24HoursOfDataMQTT', (req, res, next) =>
 {
-  let sql = 'SELECT * FROM HistoricalData WHERE datetime <= datetime("now","-1 day") AND sensor_id = "lairdc0ee400001012345"';
+  var sensor_id = req.body.sensor_id;  
+
+  let sql = 'SELECT * FROM HistoricalData WHERE datetime <= datetime("now","-1 day") AND sensor_id = ?';
   //object format: sensor24Data {sensor_id: sensor_id, water_height: value, date: date};
-  db.all(sql, [], (err, rows) => {
+  db.all(sql, [sensor_id], (err, rows) => {
     if (err) {
       console.log(err);
       throw err;
@@ -109,11 +99,9 @@ app.post('/GetLast24HoursOfData', (req, res, next) =>
 
 });
 
-
 //-----GetCurrentValue------
 
-
-app.post('/GetCurrentValue', (req, res, next) =>
+app.post('/GetCurrentValueMQTT', (req, res, next) =>
 {
   var sensor_id = req.body.sensor_id;
   console.log("sensor_id " + sensor_id);
@@ -121,59 +109,30 @@ app.post('/GetCurrentValue', (req, res, next) =>
   let isMQTT = false;
   let latestSensorReading = -1;
 
-  //use sensor id to find if sensor is MQTT or not
-  db.get(sql, [sensor_id], (err, row) =>
+  if(sensor_id != undefined)
   {
-    console.log("ROW: " + JSON.stringify(row));
-
-    if(row.MQTT == "True")
-    {
-      console.log("MQTT is true");
-        //get lastest reading from most recent value in database for that sensor
-      sql = "SELECT value_mm FROM HistoricalData WHERE sensor_id = ? ORDER BY ID DESC LIMIT 1";
-
-      db.get(sql, [sensor_id], (err, row)=>
+      //use sensor id to find if sensor is MQTT or not
+      db.get(sql, [sensor_id], (err, row) =>
       {
-        latestSensorReading = row;
+        console.log("ROW: " + JSON.stringify(row));
 
-        res.send(latestSensorReading)
+        if(row.MQTT == "True")
+        {
+          console.log("MQTT is true");
+            //get lastest reading from most recent value in database for that sensor
+          sql = "SELECT value_mm FROM HistoricalData WHERE sensor_id = ? ORDER BY ID DESC LIMIT 1";
+
+          db.get(sql, [sensor_id], (err, row)=>
+          {
+            latestSensorReading = row;
+
+            res.send(latestSensorReading)
+          });
+        }
       });
-    }else
-    {
-        let jsonResponseString = "";
-        let queryURL = "https://environment.data.gov.uk/flood-monitoring/id/stations/" + sensor_id + "/readings?latest";
-        //let queryURL = "https://environment.data.gov.uk/flood-monitoring/id/stations/E3951/readings?latest";
-        console.log(queryURL);
-  
-        https.get(queryURL, (response) => {
-        let data = '';
-  
-        // A message from the data has been received
-        response.on('data', (message) => {
-          data += message;
-        });
-  
-        // The whole response has been received. Print out the result.
-        response.on('end', () => {
-          jsonResponseString = JSON.parse(data);
-          console.log(jsonResponseString);
+  }
 
-          latestSensorReading = jsonResponseString.items[0].value;
-          latestSensorReading * 1000;
-
-          //put into js object
-          let latestSensorReadingObj = {value_mm: latestSensorReading};
-
-          res.send(latestSensorReadingObj);
-        });
-  
-      }).on("error", (err) => {
-        console.log("Error: " + err.message);
-      });
-    }
-  });
 });
-
 
 //API REQUESTS
 
