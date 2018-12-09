@@ -172,3 +172,60 @@ function getFloodWarningsChartLeacon(){
       console.log("Error: " + err.message);
     });
 }
+
+function getFloodWarningsVauxhallBridge(){
+  https.get('https://environment.data.gov.uk/flood-monitoring/id/floods?lat=51.296693&long=1.105983&dist=1', (response) => {
+      let data = '';
+
+      // A message from the data has been received
+      response.on('data', (message) => {
+        data += message;
+      });
+
+      // The whole response has been received. Print out the result.
+      response.on('end', () => {
+        console.log(JSON.parse(data));
+      });
+
+    }).on("error", (err) => {
+      console.log("Error: " + err.message);
+    });
+}
+
+function getFloodWarningsBrownMill(){
+  https.get('https://environment.data.gov.uk/flood-monitoring/id/floods?lat=51.171609&long=0.799508&dist=1', (response) => {
+      let data = '';
+
+      // A message from the data has been received
+      response.on('data', (message) => {
+        data += message;
+      });
+
+      // The whole response has been received. Print out the result.
+      response.on('end', () => {
+        console.log(JSON.parse(data));
+      });
+
+    }).on("error", (err) => {
+      console.log("Error: " + err.message);
+    });
+}
+
+function getFloodWarningsHortonWeir(){
+  https.get('https://environment.data.gov.uk/flood-monitoring/id/floods?lat=51.257785&long=1.030079&dist=1', (response) => {
+      let data = '';
+
+      // A message from the data has been received
+      response.on('data', (message) => {
+        data += message;
+      });
+
+      // The whole response has been received. Print out the result.
+      response.on('end', () => {
+        console.log(JSON.parse(data));
+      });
+
+    }).on("error", (err) => {
+      console.log("Error: " + err.message);
+    });
+}
