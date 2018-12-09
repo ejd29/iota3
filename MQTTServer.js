@@ -5,9 +5,11 @@ const ttn = require("ttn");
 
 const d2345_distance_sensor_river_bed = 1340;
 const d2345_distance_flood_from_river_bed = 1200;
+const d2345C = d2345_distance_sensor_river_bed - d2345_distance_flood_from_river_bed
 
 const d09f3_distance_sensor_river_bed = 1820;
 const d09f3_distance_flood_from_river_bed = 1820;
+const d09f3C = d09f3_distance_sensor_river_bed - d09f3_distance_flood_from_river_bed
 
 var jsonPayloadDate;
 var dateTime;
@@ -18,7 +20,7 @@ var payloadhex;
 var payloadmm;
 
 const appID = "kentwatersensors";
-const accessKey = "ttn-account-v2.7j6Z9OduNwFW7il2Sd28YYF4Q-8l9rDDPaNRFw06-GM";
+const accessKey = "ttn-account-v2.mRzaS7HOchwKsQxdj1zD-KwjxXAptb7s9pca78Nv7_U";
 
 // discover handler and open mqtt connection
 ttn.data(appID, accessKey)
@@ -44,10 +46,7 @@ ttn.data(appID, accessKey)
 				minute: '2-digit',
 			});
 
-			storeData(jsonpayload.hardware_serial, dateTime, payloadmm);
-      storeSensor(jsonpayload.hardware_serial, jsonpayload.metadata.latitude, jsonpayload.metadata.longitude, jsonpayload.metadata.altitude);
-      //storeData(jsonpayload.dev_id, dateTime, jsonpayload.counter, payloadmm);
-      //storeSensor(jsonpayload.dev_id, jsonpayload.hardware_serial, jsonpayload.metadata.latitude, jsonpayload.metadata.longitude, jsonpayload.metadata.altitude);
+      allocateData(jsonpayload.dev_id, dateTime, jsonpayload.metadata.latitude, jsonpayload.metadata.longitude, jsonpayload.metadata.altitude, payloadmm);
 
     })
   })
@@ -55,6 +54,12 @@ ttn.data(appID, accessKey)
     console.error(err)
     process.exit(1)
   })
+
+function allocateData(device_id, date_time_alloc, mLatitude, mLongitude, mAltitude, payload_val) {
+  storeData(device_id, date_time_alloc, payload_val);
+  storeSensor(device_id, mLatitude, mLongitude, mAltitude);
+  checkSensor(device_id, date_time_alloc, payload_val);
+}
 
 function storeData(dev_id, datetime, value_mm) {
 
@@ -68,25 +73,60 @@ function storeData(dev_id, datetime, value_mm) {
 	  if (err) {
 	    return console.error(err.message);
 	  }
-	  console.log(`Rows inserted ${this.changes}`);
+	  console.log(`Rows inserted for HistoricalData: ${this.changes}`);
 	});
 	db.close();
 }
 
-function storeSensor(hardware_serial_station_id, latitude, longitude, altitude) {
+function storeSensor(sensor_ID, latitude, longitude, altitude) {
 
   let dbS = new sqlite3.Database('./FloodMonitoring.db');
 
-  let incSensor = [hardware_serial_station_id, latitude, longitude, altitude];
+  let incSensor = [sensor_ID, latitude, longitude, altitude];
   let placeholdersS = incSensor.map((tableColumnS) => '?').join(',');
-	let sqlS = 'INSERT INTO SensorDetails(hardware_serial_station_id, latitude, longitude, altitude) VALUES (' + placeholdersS + ')';
+	let sqlS = 'INSERT INTO SensorDetails(sensor_id, latitude, longitude, altitude) VALUES (' + placeholdersS + ')';
 
   dbS.run(sqlS, incSensor, function(err) {
 	  if (err) {
 	    return console.error(err.message);
 	  }
-	  console.log(`Rows inserted ${this.changes}`);
+	  console.log(`Rows inserted SensorDetails: ${this.changes}`);
 	});
 	dbS.close();
 
+}
+
+function checkSensor(sensor_ID, dateTime_status, value_mm) {
+
+  if (sensor_ID == 'lairdc0ee400001012345') {
+    if (value_mm <= d2345C) {
+      storeFloodStatus(sensor_ID, dateTime_status, 'Flooding Alert');
+    } else {
+      storeFloodStatus(sensor_ID, dateTime_status, 'No concerns');
+    }
+
+  } else if (sensor_ID == 'lairdc0ee4000010109f3') {
+    if (value_mm <= d09f3C) {
+      storeFloodStatus(sensor_ID, dateTime_status, 'Flooding Alert');
+    } else {
+      storeFloodStatus(sensor_ID, dateTime_status, 'No concerns');
+    }
+  }
+
+}
+
+function storeFloodStatus(sensor_ID, dateTime_status, severity_level) {
+  let dbF = new sqlite3.Database('./FloodMonitoring.db');
+
+  let incStatus = [sensor_ID, dateTime_status, severity_level];
+  let placeholdersF = incStatus.map((tableColumnF) => '?').join(',');
+  let sqlF = 'INSERT INTO FloodStatus(sensor_id, datetime, severity_level) VALUES (' + placeholdersF + ')';
+
+  dbF.run(sqlF, incStatus, function(err) {
+    if (err) {
+      return console.error(err.message);
+    }
+    console.log(`Rows inserted FloodStatus: ${this.changes}`);
+  });
+  dbF.close();
 }
