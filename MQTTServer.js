@@ -65,13 +65,13 @@ function storeData(dev_id, datetime, value_mm) {
 
 	let db = new sqlite3.Database('./FloodMonitoring.db');
 
-	let incData = [dev_id, datetime, value_mm];
+	let incData = [dev_id, datetime, value_mm, 'False'];
 	let placeholders = incData.map((tableColumn) => '?').join(',');
-	let sql = 'INSERT INTO HistoricalData(sensor_id, datetime, value_mm) VALUES (' + placeholders + ')';
+	let sql = 'INSERT INTO HistoricalData(sensor_id, datetime, value_mm, test_mode) VALUES (' + placeholders + ')';
 
 	db.run(sql, incData, function(err) {
 	  if (err) {
-	    return console.error(err.message);
+	    return console.error("Historical Data" + err.message);
 	  }
 	  console.log(`Rows inserted for HistoricalData: ${this.changes}`);
 	});
@@ -88,7 +88,7 @@ function storeSensor(sensor_ID, latitude, longitude, altitude) {
 
   dbS.run(sqlS, incSensor, function(err) {
 	  if (err) {
-	    return console.error(err.message);
+	    return console.error("Sensor Details: " + err.message);
 	  }
 	  console.log(`Rows inserted SensorDetails: ${this.changes}`);
 	});
@@ -96,7 +96,8 @@ function storeSensor(sensor_ID, latitude, longitude, altitude) {
 
 }
 
-function checkSensor(sensor_ID, dateTime_status, value_mm) {
+function checkSensor(sensor_ID, dateTime_status, value_mm) 
+{
 
   if (sensor_ID == 'lairdc0ee400001012345') {
     if (value_mm <= d2345C) {
@@ -124,7 +125,7 @@ function storeFloodStatus(sensor_ID, dateTime_status, severity_level) {
 
   dbF.run(sqlF, incStatus, function(err) {
     if (err) {
-      return console.error(err.message);
+      return console.error("Flood Status: " + err.message);
     }
     console.log(`Rows inserted FloodStatus: ${this.changes}`);
   });

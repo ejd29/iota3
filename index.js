@@ -60,8 +60,14 @@ app.post('/GetSensorDetails', (req, res, next) =>
 
 app.post('/GetMostRecentFloodWarningMQTT', (req, res, next) =>
 {     
-  let sql2 = 'SELECT * FROM FloodStatus WHERE sensor_id = ? ORDER BY ID DESC LIMIT 1';
+  let sql2 = 'SELECT * FROM FloodStatus WHERE sensor_id = ? AND test_mode = "False" ORDER BY ID DESC LIMIT 1';
   var sensor_id = req.body.sensor_id;
+  var test_mode = req.body.test_mode;
+
+  if(test_mode)
+  {
+    let sql2 = 'SELECT * FROM FloodStatus WHERE sensor_id = ? ORDER BY ID DESC LIMIT 1';
+  }
 
   db.get(sql2, [sensor_id], (err, floodAlert) => 
   {
@@ -85,8 +91,14 @@ app.post('/GetMostRecentFloodWarningMQTT', (req, res, next) =>
 app.post('/GetLast24HoursOfDataMQTT', (req, res, next) =>
 {
   var sensor_id = req.body.sensor_id;  
+  var test_mode = req.body.test_mode; 
 
-  let sql = 'SELECT * FROM HistoricalData WHERE datetime <= datetime("now","-1 day") AND sensor_id = ?';
+  let sql = 'SELECT * FROM HistoricalData WHERE datetime <= datetime("now","-1 day") AND sensor_id = ? AND test_mode = "False"';
+
+  if(test_mode)
+  {
+    let sql = 'SELECT * FROM HistoricalData WHERE datetime <= datetime("now","-1 day") AND sensor_id = ?';
+  }
   //object format: sensor24Data {sensor_id: sensor_id, water_height: value, date: date};
   db.all(sql, [sensor_id], (err, rows) => 
   {
@@ -105,8 +117,10 @@ app.post('/GetLast24HoursOfDataMQTT', (req, res, next) =>
 app.post('/GetCurrentValueMQTT', (req, res, next) =>
 {
   var sensor_id = req.body.sensor_id;
-  console.log("sensor_id " + sensor_id);
+  var test_mode = req.body.test_mode;
+
   let sql = 'SELECT * FROM SensorDetails WHERE sensor_id = ?';
+
   let isMQTT = false;
   let latestSensorReading = -1;
 
@@ -121,7 +135,12 @@ app.post('/GetCurrentValueMQTT', (req, res, next) =>
         {
           console.log("MQTT is true");
             //get lastest reading from most recent value in database for that sensor
-          sql = "SELECT value_mm FROM HistoricalData WHERE sensor_id = ? ORDER BY ID DESC LIMIT 1";
+          sql = "SELECT value_mm FROM HistoricalData WHERE sensor_id = ? AND test_mode = 'False' ORDER BY ID DESC LIMIT 1";
+
+          if(test_mode)
+          {
+            sql = "SELECT value_mm FROM HistoricalData WHERE sensor_id = ? ORDER BY ID DESC LIMIT 1";
+          }
 
           db.get(sql, [sensor_id], (err, row)=>
           {
@@ -134,6 +153,57 @@ app.post('/GetCurrentValueMQTT', (req, res, next) =>
   }
 
 });
+
+app.post('/AddTestModeMQTTData', (req, res, next) => 
+{
+  var sensor_id = req.body.sensor_id;
+  var value_mm = req.body.value_mm;
+  var datetime = req.body.datetimeIso;
+
+  const d2345_distance_sensor_river_bed = 1340;
+  const d2345_distance_flood_from_river_bed = 1200;
+  const d2345C = d2345_distance_sensor_river_bed - d2345_distance_flood_from_river_bed
+
+  const d09f3_distance_sensor_river_bed = 1820;
+  const d09f3_distance_flood_from_river_bed = 1820;
+  const d09f3C = d09f3_distance_sensor_river_bed - d09f3_distance_flood_from_river_bed
+  
+  let sqlHistoricalData = "INSERT INTO  (sensor_id,value_mm,datetime,test_mode) VALUES (?,?,?,'True');"
+
+  db.run(sqlHistoricalData, [sensor_id, value_mm, datetime], function(err)
+  {
+    if(err)
+      res.send(err);
+  });
+
+  if (sensor_id == 'lairdc0ee400001012345') 
+  {
+    if (value_mm <= d2345C) {
+      storeFloodStatus(sensor_id, dateTime_status, 'Flooding Alert');
+    } else {
+      storeFloodStatus(sensor_id, dateTime_status, 'No concerns');
+    }
+
+  } else if (sensor_id == 'lairdc0ee4000010109f3') 
+  {
+    if (value_mm <= d09f3C) {
+      storeFloodStatus(sensor_id, dateTime_status, 'Flooding Alert');
+    } else {
+      storeFloodStatus(sensor_id, dateTime_status, 'No concerns');
+    }
+  }
+
+});
+
+function storeFloodStatus(sensor_id, datetime, severity_level)
+{
+  let sqlFloodStatus = "INSERT INTO (sensor_id,datetime,severity_level,test_mode) VALUES (?,?,?, 'True')"
+
+  db.run(sqlFloodStatus, [sensor_id, datetime, severity_level], function(err)
+  {
+    
+  });
+}
 
 //PORT STUFF
 
