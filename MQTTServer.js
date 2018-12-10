@@ -82,7 +82,7 @@ function storeSensor(sensor_ID, latitude, longitude, altitude) {
 
   let dbS = new sqlite3.Database('./FloodMonitoring.db');
 
-  let incSensor = [sensor_ID, latitude, longitude, altitude];
+  let incSensor = [sensor_ID, latitude, longitude, altitude, "False"];
   let placeholdersS = incSensor.map((tableColumnS) => '?').join(',');
 	let sqlS = 'INSERT INTO SensorDetails(sensor_id, latitude, longitude, altitude) VALUES (' + placeholdersS + ')';
 
@@ -118,7 +118,7 @@ function checkSensor(sensor_ID, dateTime_status, value_mm) {
 function storeFloodStatus(sensor_ID, dateTime_status, severity_level) {
   let dbF = new sqlite3.Database('./FloodMonitoring.db');
 
-  let incStatus = [sensor_ID, dateTime_status, severity_level];
+  let incStatus = [sensor_ID, dateTime_status, severity_level, "False"];
   let placeholdersF = incStatus.map((tableColumnF) => '?').join(',');
   let sqlF = 'INSERT INTO FloodStatus(sensor_id, datetime, severity_level) VALUES (' + placeholdersF + ')';
 

@@ -88,14 +88,15 @@ app.post('/GetLast24HoursOfDataMQTT', (req, res, next) =>
 
   let sql = 'SELECT * FROM HistoricalData WHERE datetime <= datetime("now","-1 day") AND sensor_id = ?';
   //object format: sensor24Data {sensor_id: sensor_id, water_height: value, date: date};
-  db.all(sql, [sensor_id], (err, rows) => {
+  db.all(sql, [sensor_id], (err, rows) => 
+  {
     if (err) {
       console.log(err);
       throw err;
     }
 
   res.send(rows)
-});
+  });
 
 });
 
@@ -133,47 +134,6 @@ app.post('/GetCurrentValueMQTT', (req, res, next) =>
   }
 
 });
-
-//API REQUESTS
-
-/*
-const getLatestReadingGov = async () => {
-  try {
-    return await axios.get('https://environment.data.gov.uk/flood-monitoring/id/stations/E3826/readings?latest')
-  } catch (error) {
-    console.error(error)
-  }
-}
-
-*/
-
-function getLatestReadingGov(sensor_id, callback)
-{
-      let jsonResponseString = "";
-      let queryURL = "https://environment.data.gov.uk/flood-monitoring/id/stations/" + sensor_id + "/readings?latest";
-      //let queryURL = "https://environment.data.gov.uk/flood-monitoring/id/stations/E3951/readings?latest";
-      console.log(queryURL);
-
-      https.get(queryURL, (response) => {
-      let data = '';
-
-      // A message from the data has been received
-      response.on('data', (message) => {
-        data += message;
-      });
-
-      // The whole response has been received. Print out the result.
-      response.on('end', () => {
-        jsonResponseString = JSON.parse(data);
-        console.log(jsonResponseString);
-      });
-
-    }).on("error", (err) => {
-      console.log("Error: " + err.message);
-    });
-
-    callback(jsonResponseString);
-}
 
 //PORT STUFF
 
