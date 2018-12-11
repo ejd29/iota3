@@ -3,6 +3,7 @@ const cors = require('cors');
 const app = express();
 const bodyParser = require('body-parser');
 const sqlite3 = require('sqlite3').verbose();
+const moment = require('moment');
 const https = require('https');
 const axios = require('axios');
 
@@ -93,21 +94,23 @@ app.post('/GetLast24HoursOfDataMQTT', (req, res, next) =>
   var sensor_id = req.body.sensor_id;  
   var test_mode = req.body.test_mode; 
 
-  let sql = 'SELECT * FROM HistoricalData WHERE datetime <= datetime("now","-1 day") AND sensor_id = ? AND test_mode = "False"';
+  let sql = 'SELECT * FROM HistoricalData WHERE sensor_id = ? AND test_mode = "False"';
 
   if(test_mode == "true")
   {
-    sql = 'SELECT * FROM HistoricalData WHERE datetime <= datetime("now","-1 day") AND sensor_id = ?';
+    sql = 'SELECT * FROM HistoricalData WHERE  sensor_id = ?';
   }
   //object format: sensor24Data {sensor_id: sensor_id, water_height: value, date: date};
   db.all(sql, [sensor_id], (err, rows) => 
   {
+    filteredRows = rows.filter(checkLast24Hours);
+
     if (err) {
       console.log(err);
       throw err;
     }
 
-  res.send(rows)
+  res.send(filteredRows)
   });
 
 });
@@ -135,16 +138,20 @@ app.post('/GetCurrentValueMQTT', (req, res, next) =>
         {
           console.log("MQTT is true");
             //get lastest reading from most recent value in database for that sensor
-          sql = "SELECT value_mm FROM HistoricalData WHERE sensor_id = ? AND test_mode = 'False' ORDER BY ID DESC LIMIT 1";
+          sql = "SELECT value_mm, datetime FROM HistoricalData WHERE sensor_id = ? AND test_mode = 'False'";
 
           if(test_mode == "true")
           {
-            sql = "SELECT value_mm FROM HistoricalData WHERE sensor_id = ? ORDER BY ID DESC LIMIT 1";
+            sql = "SELECT value_mm, datetime FROM HistoricalData WHERE sensor_id = ?";
           }
 
-          db.get(sql, [sensor_id], (err, row)=>
+          db.all(sql, [sensor_id], (err, rows)=>
           {
-            latestSensorReading = row;
+            rows.sort(function(a,b){
+              return new Date(b.datetime) - new Date(a.datetime);
+            });
+
+            latestSensorReading = rows[0];
 
             res.send(latestSensorReading)
           });
@@ -198,6 +205,30 @@ app.post('/AddTestModeMQTTData', (req, res, next) =>
 
 });
 
+app.post("/WipeAllDummyData", (res, req, next) =>
+{
+  let sql = "DELETE FROM HistoricalData WHERE test_mode = 'True'";
+
+  db.run(sql, [], function(err)
+  {
+    if(err)
+      console.log(error);
+  });
+});
+
+app.post("/WipeAllDummyFloodWarnings", (res, req, next) =>
+{
+  let sql = "DELETE FROM FloodStatus WHERE test_mode = 'True'";
+
+  db.run(sql, [], function(err)
+  {
+    if(err)
+      console.log(error);
+  });
+});
+
+//PRIVATE FUNCTIONS
+
 function storeFloodStatus(sensor_id, datetime, severity_level)
 {
   let sqlFloodStatus = "INSERT INTO FloodStatus (sensor_id,datetime,severity_level,test_mode) VALUES (?,?,?, 'True')"
@@ -206,6 +237,23 @@ function storeFloodStatus(sensor_id, datetime, severity_level)
   {
     console.log(err);
   });
+}
+
+function checkLast24Hours(row)
+{
+  var today = new Date();
+  var yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+
+  var datetime = moment(row.datetime).toDate();
+
+  if(datetime >= yesterday)
+  {
+    return true;
+  }else
+  {
+    return false;
+  }
 }
 
 //PORT STUFF
