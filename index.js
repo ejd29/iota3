@@ -227,6 +227,65 @@ app.post("/WipeAllDummyFloodWarnings", (res, req, next) =>
   });
 });
 
+app.post("/SubscribeUserLocation", (req, res, next) => 
+{
+  var latitude = req.body.latitude;
+  var longitude = req.body.longitude;
+
+  let sql = "INSERT INTO UserSubscribe (ip_addr, latitude, longitude) VALUES (?,?,?)"
+
+  db.run(sql, [req.connection.remoteAddress, latitude, longitude], function(err)
+  {
+    if(err)
+    {
+      console.log(err);
+      res.send(err);
+    }else
+    {
+      res.send(200);
+    }
+  });
+});
+
+app.post("/CheckUserSubscription", (req, res, next) => 
+{
+  let sql = "SELECT latitude, longitude FROM UserSubscribe WHERE ip_addr = ?";
+
+  db.get(sql, [req.connection.remoteAddress], function(err, row)
+  {
+    if(err)
+    {
+      console.log(err);
+      res.send(err);
+    }else
+    {
+      res.send(row);
+    }
+  });
+});
+
+app.get("/FakeGovFloodWarning", (req, res, next) => 
+{
+  /*
+  { 
+    "@id" : "http://environment.data.gov.uk/flood-monitoring/id/floods/104714" ,
+    "description" : "River Lugg south of Leominster" ,
+    "eaAreaName" : "West" ,
+    "eaRegionName" : "Midlands" ,
+    "floodArea" : { 
+      "@id" : "http://environment.data.gov.uk/flood-monitoring/id/floodAreas/031WAF116" ,
+      "county" : "Herefordshire" ,
+      "notation" : "031WAF116" ,
+      "polygon" : "http://environment.data.gov.uk/flood-monitoring/id/floodAreas/031WAF116/polygon" ,
+      "riverOrSea" : "River Lugg"
+    }
+  */
+
+  var fakeFloodResponse = {id: "fake", description: "this is fake", severity_level: 3};
+
+  res.send(fakeFloodResponse);
+}); 
+
 //PRIVATE FUNCTIONS
 
 function storeFloodStatus(sensor_id, datetime, severity_level)

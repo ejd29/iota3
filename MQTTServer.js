@@ -66,8 +66,8 @@ function storeData(dev_id, datetime, value_mm) {
 	let db = new sqlite3.Database('./FloodMonitoring.db');
 
 	let incData = [dev_id, datetime, value_mm, 'False'];
-	let placeholders = incData.map((tableColumn) => '?').join(',');
-	let sql = 'INSERT INTO HistoricalData(sensor_id, datetime, value_mm, test_mode) VALUES (' + placeholders + ')';
+	//let placeholders = incData.map((tableColumn) => '?').join(',');
+	let sql = 'INSERT INTO HistoricalData(sensor_id, datetime, value_mm, test_mode) VALUES (?,?,?,?)';
 
 	db.run(sql, incData, function(err) {
 	  if (err) {
@@ -116,15 +116,17 @@ function checkSensor(sensor_ID, dateTime_status, value_mm)
 
 }
 
-function storeFloodStatus(sensor_ID, dateTime_status, severity_level) {
+function storeFloodStatus(sensor_ID, dateTime_status, severity_level) 
+{
   let dbF = new sqlite3.Database('./FloodMonitoring.db');
 
   let incStatus = [sensor_ID, dateTime_status, severity_level, "False"];
-  let placeholdersF = incStatus.map((tableColumnF) => '?').join(',');
-  let sqlF = 'INSERT INTO FloodStatus(sensor_id, datetime, severity_level) VALUES (' + placeholdersF + ')';
+  //let placeholdersF = incStatus.map((tableColumnF) => '?').join(',');
+  let sqlF = 'INSERT INTO FloodStatus(sensor_id, datetime, severity_level, test_mode) VALUES (?,?,?,?)';
 
   dbF.run(sqlF, incStatus, function(err) {
-    if (err) {
+    if (err) 
+    {
       return console.error("Flood Status: " + err.message);
     }
     console.log(`Rows inserted FloodStatus: ${this.changes}`);
