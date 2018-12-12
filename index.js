@@ -181,29 +181,58 @@ app.post('/AddTestModeMQTTData', (req, res, next) =>
   {
     if(err)
       console.log(err);
+    else
+    {
+      res.send(200);
+    }
   });
 
   if (sensor_id == 'lairdc0ee400001012345') 
   {
     if (value_mm >= d2345C) 
     {
-      storeFloodStatus(sensor_id, datetime, 'Flooding Alert');
+      storeFloodStatus(sensor_id, datetime, 2);
     } else {
-      storeFloodStatus(sensor_id, datetime, 'No concerns');
+      storeFloodStatus(sensor_id, datetime, 4);
     }
 
   } else if (sensor_id == 'lairdc0ee4000010109f3') 
   {
     if (value_mm >= d09f3C) 
     {
-      storeFloodStatus(sensor_id, datetime, 'Flooding Alert');
+      storeFloodStatus(sensor_id, datetime, 2);
     } else 
     {
-      storeFloodStatus(sensor_id, datetime, 'No concerns');
+      storeFloodStatus(sensor_id, datetime, 4);
     }
   }
 
 });
+
+app.post("/MqttSensorCheck", (req, res, next) =>
+{
+  var sensor_id = req.body.sensor_id;
+
+  let sql2 = 'SELECT * FROM HistoricalData WHERE sensor_id = ?';
+
+  db.all(sql2, [sensor_id], (err, rows2) => {
+    if (err) {
+      console.log(err);
+      throw err;
+    }
+    
+    let filteredRows = rows2.filter(checkLast24Hours);
+  
+    let responseData = {sensorDown: false};
+
+    if(filteredRows.length == 0)
+    {
+      responseData = {sensorDown: true};
+    }
+
+    res.send(responseData);
+  });
+}); 
 
 app.post("/WipeAllDummyData", (res, req, next) =>
 {

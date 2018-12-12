@@ -46,7 +46,9 @@ ttn.data(appID, accessKey)
 				minute: '2-digit',
 			});
 
-      allocateData(jsonpayload.dev_id, dateTime, jsonpayload.metadata.latitude, jsonpayload.metadata.longitude, jsonpayload.metadata.altitude, payloadmm);
+      water_height = d09f3_distance_sensor_river_bed - payloadmm;
+
+      allocateData(jsonpayload.dev_id, dateTime, jsonpayload.metadata.latitude, jsonpayload.metadata.longitude, jsonpayload.metadata.altitude, water_height);
 
     })
   })
@@ -100,17 +102,17 @@ function checkSensor(sensor_ID, dateTime_status, value_mm)
 {
 
   if (sensor_ID == 'lairdc0ee400001012345') {
-    if (value_mm <= d2345C) {
-      storeFloodStatus(sensor_ID, dateTime_status, 'Flooding Alert');
+    if (value_mm >= d2345C) {
+      storeFloodStatus(sensor_ID, dateTime_status, 4);
     } else {
-      storeFloodStatus(sensor_ID, dateTime_status, 'No concerns');
+      storeFloodStatus(sensor_ID, dateTime_status, 2);
     }
 
   } else if (sensor_ID == 'lairdc0ee4000010109f3') {
-    if (value_mm <= d09f3C) {
-      storeFloodStatus(sensor_ID, dateTime_status, 'Flooding Alert');
+    if (value_mm >= d09f3C) {
+      storeFloodStatus(sensor_ID, dateTime_status, 4);
     } else {
-      storeFloodStatus(sensor_ID, dateTime_status, 'No concerns');
+      storeFloodStatus(sensor_ID, dateTime_status, 2);
     }
   }
 
